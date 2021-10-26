@@ -1,0 +1,13 @@
+"Singular Value Decomposition” by Steve Brunton (YouTube playlist)
+https://www.youtube.com/watch?v=gXbThCXjZFM&list=PLMrJAkhIeNNSVjnsviglFoY2nXildDCcv
+
+Et plus précisément les vidéos suivantes :
+
+ Rappels sur la SVD :
+  - SVD: Overview (https://youtu.be/gXbThCXjZFM?list=PLMrJAkhIeNNSVjnsviglFoY2nXildDCcv)
+  - SVD: Mathematical Overview (https://youtu.be/nbBvuuNVfco?list=PLMrJAkhIeNNSVjnsviglFoY2nXildDCcv)
+  - SVD: Matrix Approximation (https://youtu.be/xy3QyyhiuY4?list=PLMrJAkhIeNNSVjnsviglFoY2nXildDCcv)
+  
+  Randomised SVD
+   - RSVD (https://youtu.be/fJ2EyvR85ro?list=PLMrJAkhIeNNSVjnsviglFoY2nXildDCcv)
+   - RSVD: Power Iterations and Oversampling (https://youtu.be/UXXMbpLI7AM?list=PLMrJAkhIeNNSVjnsviglFoY2nXildDCcv)
