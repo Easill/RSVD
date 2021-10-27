@@ -39,13 +39,18 @@ title(paste("r=",r, ", ",round(((n+1+p)*r)/(n*p)*100,1),"%"),cex.main=0.9)
 
 for (r in c(10, 20, 50, 100)){
   image(u[,1:r]%*%diag(d[1:r])%*%t(v[,1:r]), col = grey(seq(0, 1, length = 256)),asp=1)
-  title(paste("r=",r, ", ",round(((n+1+p)*r)/(n*p)*100,1),"%"),cex.main=0.9)
+  title(paste("r=",r),cex.main=0.9)
 }
+
+# r = 50
+# image(u[,1:r]%*%diag(d[1:r])%*%t(v[,1:r]), col = grey(seq(0, 1, length = 256)),asp=1)
+# title(paste("r=",r),cex.main=0.9)
+
 
 
 #RSVD sur l'image
 
-k = 512
+k = 50
 photo.rsvd <- rsvd(photo, k=k)
 
 Phto <- photo.rsvd$u %*% diag(photo.rsvd$d) %*% t(photo.rsvd$v)
@@ -68,8 +73,61 @@ title(paste("k=",k, ", ",round(((n+1+p)*k)/(n*p)*100,1),"%"),cex.main=0.9)
 
 for (k in c(10, 20, 50, 100)){
   image(photo.rsvd$u[,1:k]%*%diag(photo.rsvd$d[1:k])%*%t(photo.rsvd$v[,1:k]), col = grey(seq(0, 1, length = 256)),asp=1)
-  title(paste("k=",k, ", ",round(((n+1+p)*k)/(n*p)*100,1),"%"),cex.main=0.9)
+  title(paste("k=",k),cex.main=0.9)
 }
+
+# par(xaxt="n",yaxt="n")
+# k = 50
+# image(photo.rsvd$u[,1:k]%*%diag(photo.rsvd$d[1:k])%*%t(photo.rsvd$v[,1:k]), col = grey(seq(0, 1, length = 256)),asp=1)
+# title(paste("k=",k),cex.main=0.9)
+
+
+###################################
+##### Test du computing time  #####
+###################################
+
+# Importation d'une image
+
+photo <- as.matrix(raster("https://husson.github.io/img/Lena.png"))
+dim(photo)
+n <- nrow(photo)
+p <- ncol(photo)
+
+#SVD sur l'image
+
+start.time <- Sys.time()
+photo.svd <- svd(photo)
+compsvd <- Sys.time() - start.time
+compsvd
+
+#RSVD sur l'image
+k = 50
+
+start.time <- Sys.time()
+photo.rsvd <- rsvd(photo, k=k)
+comprsvd <- Sys.time() - start.time
+comprsvd
+
+test1 <- rsvd(photo)
+test <- rsvd(photo, p=0, q=1)
+# computetime <- rep(0,ncol(photo))
+
+# for (i in 1:ncol(photo)){
+#   start.time <- Sys.time()
+#   photo.rsvd <- rsvd(photo, k=k)
+#   comprsvd <- Sys.time() - start.time
+#   computetime[i] <- comprsvd
+# }
+
+# write.table(computetime,"computetime.txt")
+computetime <- read.table("computetime.txt", skip = 1, col.names = c("rank","temps"))
+length(computetime)
+
+head(computetime)
+tail(computetime)
+
+#Peu importe le rang indiqué pour effectuer la rsvd, le computing time reste trois fois inférieur à celui de la SVD
+
 
 #############################################
 ##### oversampling et power iterations  #####
@@ -102,21 +160,59 @@ for (p in c(10,20,50,100)){
   }
 }
 
+Photo.rsvdP <- list()
+for (p in c(10,20,50,100)){
+  if (p == 10){
+    Photo.rsvdP[[1]] <- rsvd(photo, k=k, p = p)
+  }
+  else if (p == 20){
+    Photo.rsvdP[[2]] <- rsvd(photo, k=k, p = p)
+  }
+  else if (p == 50){
+    Photo.rsvdP[[3]] <- rsvd(photo, k=k, p = p)
+  }
+  else {
+    Photo.rsvdP[[4]] <- rsvd(photo, k=k, p = p)
+  }
+}
+
+table(Photo.rsvdP[[2]]$d==Photo.rsvdP[[1]]$d) #preuve d'une différence entre les matrices
+
+
 table(Photo.recons.rsvdP[[2]]==Photo.recons.rsvdP[[1]]) #preuve d'une différence entre les matrices
 
 Photo.recons.rsvd <- photo.rsvd$u %*% diag(photo.rsvd$d) %*% t(photo.rsvd$v)
 
+#Les deux matrices sont bel et bien différentes, 
+#même si aucune différence n'est visible sur l'image
+
 for (i in 1:4){
   print(table(Photo.recons.rsvd==Photo.recons.rsvdP[[i]]))
 }
-#Les deux matrices sont bel et bien différentes, 
-#même si aucune différence n'est visible sur l'image
+
 
 #### power iterations ####
 
 #La même chose avec le power iteration, on évite la partie graphique pour maximiser la rapidité
 
 Photo.recons.rsvdQ <- list()
+
+photo.rsvdQ5 <- rsvd(photo, k=10, q = 5)
+photo.rsvdQ0 <- rsvd(photo, k=10, q = 1)
+
+res5 <- photo.rsvdQ5$d/max(photo.rsvdQ5$d)
+res0 <- photo.rsvdQ0$d/max(photo.rsvdQ0$d)
+
+plot(res5, type = "l", col = "red",
+     xlab = "rang", ylab = expression(sigma), main = "Valeurs singulières en fonction du rang")
+lines(res0, type = "l", col = "blue")
+legend(8, 0.4, c("q = 5", "q = 1"), fill = c("red", "blue"))
+
+
+# 
+# plot(res_10_5, type = "l", col = "red")
+# lines(res_10_0, type = "l", col = "blue")
+
 
 for (q in c(3,4,5,10)){
   photo.rsvdQ <- rsvd(photo, k=k, q = q)
@@ -174,57 +270,10 @@ table(Photo.recons.svd==Photo.recons.rsvd)
 #Le pourcentage d'erreur est similaire en svd et en rsvd pour des mêmes paramètres
 
 
-###################################
-##### Test du computing time  #####
-###################################
-
-# Importation d'une image
-
-photo <- as.matrix(raster("https://husson.github.io/img/Lena.png"))
-dim(photo)
-n <- nrow(photo)
-p <- ncol(photo)
-
-#SVD sur l'image
-
-start.time <- Sys.time()
-photo.svd <- svd(photo)
-compsvd <- Sys.time() - start.time
-
-compsvd
-
-#RSVD sur l'image
-
-k = 100
-
-start.time <- Sys.time()
-photo.rsvd <- rsvd(photo, k=k)
-comprsvd <- Sys.time() - start.time
-comprsvd
-
-
-# computetime <- rep(0,ncol(photo))
-
-# for (i in 1:ncol(photo)){
-#   start.time <- Sys.time()
-#   photo.rsvd <- rsvd(photo, k=k)
-#   comprsvd <- Sys.time() - start.time
-#   computetime[i] <- comprsvd
-# }
-
-# write.table(computetime,"computetime.txt")
-computetime <- read.table("computetime.txt", skip = 1, col.names = c("rank","temps"))
-length(computetime)
-
-head(computetime)
-tail(computetime)
-
-#Peu importe le rang indiqué pour effectuer la rsvd, le computing time reste trois fois inférieur à celui de la SVD
 
 ###################################
 ##### Test avec un jeu généré #####
 ###################################
-
 
 #Simulate a general matrix with 1000 rows and 1000 columns
 vy= rnorm(1000*1000,0,1)
@@ -236,7 +285,7 @@ prova1= rsvd(y,k=100)
 Sys.time()- start.time
 
 start.time <- Sys.time()
-prova3= rsvd(y,k=100,q=5,p=50)
+prova3= rsvd(y,k=100,q=5,p=20)
 Sys.time()- start.time
 
 #Compare with a classical SVD
@@ -255,6 +304,42 @@ print(100 * norm( y - P3, 'F') / norm( y,'F')) # percentage error
 P2 <- prova2$u[,1:k] %*% diag(prova2$d[1:k]) %*% t(prova2$v[,1:k])
 
 print(100 * norm( y - P2, 'F') / norm( y,'F')) # percentage error
+
+
+rsvdP <- list()
+for (p in c(10,20,50,100)){
+  if (p == 10){
+    rsvdP[[1]] <- rsvd(y, k=k, p = p)
+  }
+  else if (p == 20){
+    rsvdP[[2]] <- rsvd(y, k=k, p = p)
+  }
+  else if (p == 50){
+    rsvdP[[3]] <- rsvd(y, k=k, p = p)
+  }
+  else {
+    rsvdP[[4]] <- rsvd(y, k=k, p = p)
+  }
+}
+for (i in 1:4){
+  cat(c("5 premières valeurs singulières pour rsvd",i, ": ",round(head(rsvdP[[i]]$d, 5),2),"\n"))
+}
+
+table(rsvdP[[2]]$d==rsvdP[[1]]$d) #preuve d'une différence entre les matrices
+
+
+
+rsvdQ5 <- rsvd(y, k=50, q = 5)
+rsvdQ0 <- rsvd(y, k=50, q = 1)
+
+res5 <- rsvdQ5$d/max(rsvdQ5$d)
+res0 <- rsvdQ0$d/max(rsvdQ0$d)
+
+plot(res5, type = "l", col = "red", ylim = c(0, 1),
+     xlab = "rang", ylab = expression(sigma), main = "Valeurs singulières en fonction du rang")
+lines(res0, type = "l", col = "blue")
+legend(40, 0.4, c("q = 5", "q = 1"), fill = c("red", "blue"))
+
 
 
 #################
